@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HERÓIS DA FÉ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;       
+            --primary-dark: #1e40af;  
+            --primary-light: #eff6ff; 
+            --secondary: #60a5fa;     
+            --bg-color: #f1f5f9;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --success: #10b981;
+            --radius: 16px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        #auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); display: flex; justify-content: center; align-items: center; z-index: 999; padding: 20px; }
+        .auth-card { background: white; width: 100%; max-width: 400px; padding: 32px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: fadeIn 0.4s ease; }
+        .auth-brand { text-align: center; font-size: 22px; font-weight: 700; color: var(--primary); margin-bottom: 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .auth-brand i { font-size: 36px; }
+        .btn-text { background: transparent; color: var(--text-muted); border: none; padding: 14px; font-weight: 500; width: 100%; margin-top: 5px; font-size: 14px; cursor: pointer; text-decoration: underline; }
+        #app-screen { display: none; flex-direction: column; height: 100%; }
+        .app-header { background-color: var(--primary); color: white; padding: 20px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 20; }
+        .brand { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+        .logout-btn { color: white; background: none; border: none; font-size: 18px; cursor: pointer; }
+        .year-select { background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.3); padding: 6px 12px; border-radius: 8px; outline: none; }
+        .year-select option { color: var(--text-main); }
+        .main-content { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 90px; }
+        .main-content::-webkit-scrollbar { display: none; }
+        .view-section { display: none; animation: fadeIn 0.3s ease; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .section-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; color: var(--text-main); }
+        .card { background: var(--surface); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px; }
+        .card-title { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; font-weight: 500; text-transform: uppercase; }
+        .card-value { font-size: 28px; font-weight: 700; color: var(--text-main); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        .grid-2 .card { margin-bottom: 0; padding: 12px; }
+        .grid-2 .card-value { font-size: 20px; }
+        .chart-container { position: relative; height: 250px; width: 100%; }
+        .months-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .month-card { background: var(--surface); padding: 16px 8px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
+        .month-icon { font-size: 22px; color: var(--primary); margin-bottom: 8px; }
+        .month-name { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+        .record-list { display: flex; flex-direction: column; gap: 10px; }
+        .record-item { display: flex; justify-content: space-between; align-items: center; background: var(--surface); padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border); }
+        .record-info strong { display: block; font-size: 15px; color: var(--text-main); margin-bottom: 2px; }
+        .record-info span { font-size: 12px; color: var(--text-muted); }
+        .record-val { font-weight: 700; font-size: 16px; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid var(--border); z-index: 20; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); font-size: 11px; font-weight: 600; width: 33%; }
+        .nav-item i { font-size: 20px; margin-bottom: 2px; }
+        .nav-item.active { color: var(--primary); }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); font-weight: 500; }
+        .form-group input { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 15px; background: var(--bg-color); outline: none; }
+        .btn { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 600; font-size: 15px; width: 100%; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 100; justify-content: center; align-items: flex-end; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--surface); width: 100%; max-height: 90vh; border-radius: 20px 20px 0 0; padding: 24px 20px; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-close { background: var(--bg-color); width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: var(--text-muted); font-size: 18px; }
+        .h-elem { display: none; }
+        .custom-popup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-150px); background: var(--surface); padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 10000; display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 14px; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); width: 90%; max-width: 350px; border-left: 5px solid var(--primary); }
+        .custom-popup.show { transform: translateX(-50%) translateY(0); }
+        .custom-popup.error { border-left-color: var(--danger); color: var(--danger); }
+        .custom-popup.success { border-left-color: var(--success); color: var(--success); }
+    </style>
+</head>
+<body>
+    <div id="custom-popup" class="custom-popup">
+        <i id="custom-popup-icon" class="fa-solid fa-circle-info"></i>
+        <span id="custom-popup-msg"></span>
+    </div>
+
+    <div id="auth-screen">
+        <div class="auth-card" id="login-box">
+            <div class="auth-brand">
+                <i class="fa-solid fa-shield-halved"></i>
+                HERÓIS DA FÉ
+            </div>
+            <div class="form-group">
+                <label>Usuário</label>
+                <input type="text" id="login-user">
+            </div>
+            <div class="form-group">
+                <label>Senha</label>
+                <input type="password" id="login-pass">
+            </div>
+            <button class="btn" onclick="window.doLogin()">Acessar Conta</button>
+            <button class="btn-text" onclick="window.toggleAuth()">Ainda não tem conta? Cadastre-se</button>
+        </div>
+
+        <div class="auth-card" id="reg-box" style="display: none;">
+            <div class="auth-brand">
+                <i class="fa-solid fa-shield-halved"></i>
+                CRIAR CONTA
+            </div>
+            <div class="form-group">
+                <label>Novo Usuário</label>
+                <input type="text" id="reg-user">
+            </div>
+            <div class="form-group">
+                <label>Criar Senha</label>
+                <input type="password" id="reg-pass">
+            </div>
+            <button class="btn" onclick="window.doRegister()">Finalizar Cadastro</button>
+            <button class="btn-text" onclick="window.toggleAuth()">Já possui conta? Fazer Login</button>
+        </div>
+    </div>
+
+    <div id="app-screen">
+        <header class="app-header">
+            <div class="brand"><i class="fa-solid fa-shield-halved"></i> HERÓIS DA FÉ</div>
+            <div class="header-actions">
+                <select class="year-select" id="global-year" onchange="window.updateAllViews()">
+                    <option value="2026">2026</option>
+                    <option value="2027">2027</option>
+                    <option value="2028">2028</option>
+                    <option value="2029">2029</option>
+                    <option value="2030">2030</option>
+                </select>
+                <button class="logout-btn" onclick="window.logoutApp()"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section id="dashboard" class="view-section active">
+                <div class="card" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border: none;">
+                    <div class="card-title" style="color: var(--primary-light);">Caixa Atual</div>
+                    <div class="card-value" style="color: white;" id="dash-caixa">R$ 0,00</div>
+                </div>
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-title">Entradas Ano</div>
+                        <div class="card-value" style="color: var(--success);" id="dash-entradas">R$ 0,00</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Saídas Ano</div>
+                        <div class="card-value" style="color: var(--danger);" id="dash-saidas">R$ 0,00</div>
+                    </div>
+                </div>
+                <h3 class="section-title" style="font-size: 16px; margin-top: 8px;">Visão Anual</h3>
+                <div class="card"><div class="chart-container"><canvas id="financeChart"></canvas></div></div>
+            </section>
+
+            <section id="entradas" class="view-section">
+                <h2 class="section-title">Período</h2>
+                <div class="months-grid" id="months-container"></div>
+            </section>
+
+            <section id="saidas" class="view-section">
+                <div class="h-elem">
+                    <h2 class="section-title">Registrar Saída</h2>
+                    <div class="card">
+                        <form onsubmit="window.addSaida(event)">
+                            <div class="form-group"><label>Descrição</label><input type="text" id="desc-saida" required></div>
+                            <div class="grid-2" style="margin-bottom: 0;">
+                                <div class="form-group"><label>Valor (R$)</label><input type="number" step="0.01" id="valor-saida" required></div>
+                                <div class="form-group"><label>Data</label><input type="date" id="data-saida" required></div>
+                            </div>
+                            <button type="submit" class="btn"><i class="fa-solid fa-minus"></i> Debitar do Caixa</button>
+                        </form>
+                    </div>
+                </div>
+                <h3 class="section-title" style="font-size: 16px; margin-top: 24px;">Histórico</h3>
+                <div class="record-list" id="lista-saidas"></div>
+            </section>
+        </main>
+
+        <nav class="bottom-nav">
+            <div class="nav-item active" onclick="window.switchTab('dashboard', this)">
+                <i class="fa-solid fa-chart-simple"></i><span>Início</span>
+            </div>
+            <div class="nav-item" onclick="window.switchTab('entradas', this)">
+                <i class="fa-solid fa-circle-plus"></i><span>Doações</span>
+            </div>
+            <div class="nav-item" onclick="window.switchTab('saidas', this)">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i><span>Saídas</span>
+            </div>
+        </nav>
+    </div>
+
+    <div class="modal" id="entry-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title" style="font-size: 20px;"></h2>
+                <div class="modal-close" onclick="window.closeModal()"><i class="fa-solid fa-xmark"></i></div>
+            </div>
+
+            <div class="h-elem">
+                <form onsubmit="window.addEntrada(event)" style="margin-bottom: 24px;">
+                    <div class="form-group"><label>Nome / Origem</label><input type="text" id="nome-entrada" required></div>
+                    <div class="grid-2">
+                        <div class="form-group"><label>Valor (R$)</label><input type="number" step="0.01" id="valor-entrada" required></div>
+                        <div class="form-group"><label>Data Exata</label><input type="date" id="data-entrada" required></div>
+                    </div>
+                    <button type="submit" class="btn"><i class="fa-solid fa-check"></i> Adicionar</button>
+                </form>
+            </div>
+
+            <h3 class="section-title" style="font-size: 16px;">Registros do Mês</h3>
+            <div class="record-list" id="lista-entradas-mes"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWumyfcxj0qwX1eglUg0MyqTC0KhwZfL8",
+            authDomain: "herois-da-fe-rhema.firebaseapp.com",
+            projectId: "herois-da-fe-rhema",
+            storageBucket: "herois-da-fe-rhema.firebasestorage.app",
+            messagingSenderId: "301468120974",
+            appId: "1:301468120974:web:3cb1a9cc67d5ce397796df"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let entradas = [];
+        let saidas = [];
+        let selectedMonthIndex = 0; 
+        let chartInstance = null;
+        let idleTimeout;
+
+        const mesesStr = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const mesesCompletos = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        const iconesMeses = ['fa-dove', 'fa-book-bible', 'fa-cross', 'fa-hands-praying', 'fa-fish', 'fa-fire', 'fa-water', 'fa-wheat-awn', 'fa-wine-glass', 'fa-church', 'fa-crown', 'fa-star'];
+
+        window.showToast = (msg, type = 'error') => {
+            const p = document.getElementById('custom-popup');
+            const pMsg = document.getElementById('custom-popup-msg');
+            const pIco = document.getElementById('custom-popup-icon');
+            p.className = `custom-popup ${type}`;
+            pMsg.innerText = msg;
+            pIco.className = type === 'error' ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check';
+            p.classList.add('show');
+            setTimeout(() => p.classList.remove('show'), 3500);
+        };
+
+        window.toggleAuth = () => {
+            const loginBox = document.getElementById('login-box');
+            const regBox = document.getElementById('reg-box');
+            if (loginBox.style.display === 'none') {
+                loginBox.style.display = 'block';
+                regBox.style.display = 'none';
+            } else {
+                loginBox.style.display = 'none';
+                regBox.style.display = 'block';
+            }
+        };
+
+        function resetIdleTimer() {
+            if (!currentUser) return;
+            clearTimeout(idleTimeout);
+            idleTimeout = setTimeout(() => window.logoutApp(), 3600000);
+        }
+        
+        ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'].forEach(evt => 
+            document.addEventListener(evt, resetIdleTimer, true)
+        );
+
+        window.doLogin = async () => {
+            const user = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+            if(!user || !pass) { window.showToast("Preencha todos os campos."); return; }
+
+            try {
+                const q = query(collection(db, "usuarios"), where("username", "==", user.toLowerCase()), where("password", "==", pass));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    window.showToast("Credenciais inválidas.");
+                } else {
+                    window.showToast("Bem-vindo(a)!", "success");
+                    const userData = querySnapshot.docs[0].data();
+                    iniciarSessao(userData);
+                }
+            } catch (error) {
+                console.error(error);
+                window.showToast("Erro de permissão! Libere o acesso nas Rules do Firebase.");
+            }
+        };
+
+        window.doRegister = async () => {
+            const user = document.getElementById('reg-user').value.trim();
+            const pass = document.getElementById('reg-pass').value.trim();
+            if(!user || !pass) { window.showToast("Preencha todos os campos."); return; }
+
+            try {
+                const q = query(collection(db, "usuarios"), where("username", "==", user.toLowerCase()));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    window.showToast("Este usuário já existe no banco.");
+                } else {
+                    const k = btoa(user.toLowerCase()) === 'YWRhbGJlcnRv';
+                    const role = k ? 'admin' : 'viewer';
+                    const novoUser = { username: user.toLowerCase(), password: pass, role: role };
+                    await addDoc(collection(db, "usuarios"), novoUser);
+                    window.showToast("Conta criada com sucesso!", "success");
+                    iniciarSessao(novoUser);
+                }
+            } catch (error) {
+                console.error(error);
+                window.showToast("Erro ao conectar! Modifique as Rules do Firestore para true.");
+            }
+        };
+
+        async function iniciarSessao(userData) {
+            currentUser = userData;
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'flex';
+            
+            if(currentUser.role === 'admin') {
+                document.querySelectorAll('.h-elem').forEach(el => el.style.display = 'block');
+            }
+
+            renderMesesGrid();
+            
+            try {
+                await carregarDadosFirebase();
+            } catch (error) {
+                console.error(error);
+                window.showToast("Erro ao buscar registros. Verifique as permissões do Firebase.");
+            }
+            
+            resetIdleTimer();
+        }
+
+        window.logoutApp = () => {
+            currentUser = null;
+            clearTimeout(idleTimeout);
+            document.getElementById('auth-screen').style.display = 'flex';
+            document.getElementById('app-screen').style.display = 'none';
+            document.getElementById('login-user').value = '';
+            document.getElementById('login-pass').value = '';
+            document.getElementById('reg-user').value = '';
+            document.getElementById('reg-pass').value = '';
+            document.querySelectorAll('.h-elem').forEach(el => el.style.display = 'none');
+            document.getElementById('login-box').style.display = 'block';
+            document.getElementById('reg-box').style.display = 'none';
+        };
+
+        async function carregarDadosFirebase() {
+            entradas = []; saidas = [];
+            const entradasSnap = await getDocs(collection(db, "entradas"));
+            entradasSnap.forEach(doc => entradas.push(doc.data()));
+            const saidasSnap = await getDocs(collection(db, "saidas"));
+            saidasSnap.forEach(doc => saidas.push(doc.data()));
+            window.updateAllViews();
+        }
+
+        window.addEntrada = async (e) => {
+            e.preventDefault();
+            if(currentUser.role !== 'admin') return;
+
+            const ano = document.getElementById('global-year').value;
+            const nome = document.getElementById('nome-entrada').value;
+            const valor = parseFloat(document.getElementById('valor-entrada').value);
+            const dataStr = document.getElementById('data-entrada').value;
+
+            try {
+                const nova = { ano, mes: selectedMonthIndex, nome, valor, data: dataStr };
+                await addDoc(collection(db, "entradas"), nova);
+                entradas.push(nova);
+                
+                document.getElementById('nome-entrada').value = '';
+                document.getElementById('valor-entrada').value = '';
+                renderListaEntradasMes();
+                window.updateAllViews();
+                window.showToast("Entrada adicionada com sucesso!", "success");
+            } catch (error) {
+                console.error(error);
+                window.showToast("Erro ao salvar! Verifique as permissões.");
+            }
+        };
+
+        window.addSaida = async (e) => {
+            e.preventDefault();
+            if(currentUser.role !== 'admin') return;
+
+            const desc = document.getElementById('desc-saida').value;
+            const valor = parseFloat(document.getElementById('valor-saida').value);
+            const dataStr = document.getElementById('data-saida').value;
+            const ano = dataStr.split('-')[0];
+            const mes = parseInt(dataStr.split('-')[1]) - 1;
+
+            try {
+                const nova = { ano, mes, desc, valor, data: dataStr };
+                await addDoc(collection(db, "saidas"), nova);
+                saidas.push(nova);
+                
+                document.getElementById('desc-saida').value = '';
+                document.getElementById('valor-saida').value = '';
+                document.getElementById('data-saida').value = '';
+                
+                window.updateAllViews();
+                renderListaSaidas();
+                window.showToast("Saída registrada!", "success");
+            } catch (error) {
+                console.error(error);
+                window.showToast("Erro ao salvar! Verifique as permissões.");
+            }
+        };
+
+        window.switchTab = (tabId, element) => {
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            element.classList.add('active');
+            if(tabId === 'dashboard') updateChart();
+            if(tabId === 'saidas') renderListaSaidas();
+        };
+
+        function renderMesesGrid() {
+            const container = document.getElementById('months-container');
+            container.innerHTML = '';
+            mesesStr.forEach((mes, index) => {
+                const card = document.createElement('div');
+                card.className = 'month-card';
+                card.onclick = () => window.openMonthModal(index);
+                card.innerHTML = `<i class="fa-solid ${iconesMeses[index]} month-icon"></i><div class="month-name">${mes}</div>`;
+                container.appendChild(card);
+            });
+        }
+
+        window.openMonthModal = (monthIndex) => {
+            selectedMonthIndex = monthIndex;
+            const currentYear = document.getElementById('global-year').value;
+            document.getElementById('modal-title').innerText = `${mesesCompletos[monthIndex]} ${currentYear}`;
+            renderListaEntradasMes();
+            document.getElementById('entry-modal').classList.add('active');
+        };
+
+        window.closeModal = () => document.getElementById('entry-modal').classList.remove('active');
+
+        function formatMoney(value) { return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+        function formatarData(dataStr) { const d = dataStr.split('-'); return `${d[2]}/${d[1]}/${d[0]}`; }
+
+        window.updateAllViews = () => {
+            const currentYear = document.getElementById('global-year').value;
+            const caixa = entradas.reduce((a, c) => a + c.valor, 0) - saidas.reduce((a, c) => a + c.valor, 0);
+            const entradasAno = entradas.filter(e => e.ano === currentYear).reduce((a, c) => a + c.valor, 0);
+            const saidasAno = saidas.filter(s => s.ano === currentYear).reduce((a, c) => a + c.valor, 0);
+
+            document.getElementById('dash-caixa').innerText = formatMoney(caixa);
+            document.getElementById('dash-entradas').innerText = formatMoney(entradasAno);
+            document.getElementById('dash-saidas').innerText = formatMoney(saidasAno);
+
+            if(document.getElementById('dashboard').classList.contains('active')) updateChart();
+            if(document.getElementById('entry-modal').classList.contains('active')) {
+                document.getElementById('modal-title').innerText = `${mesesCompletos[selectedMonthIndex]} ${currentYear}`;
+                renderListaEntradasMes();
+            }
+            if(document.getElementById('saidas').classList.contains('active')) renderListaSaidas();
+        };
+
+        function renderListaEntradasMes() {
+            const container = document.getElementById('lista-entradas-mes');
+            const currentYear = document.getElementById('global-year').value;
+            container.innerHTML = '';
+            const filtradas = entradas.filter(e => e.ano === currentYear && e.mes === selectedMonthIndex);
+            
+            if(filtradas.length === 0) { container.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:14px;">Nada encontrado.</div>`; return; }
+
+            filtradas.forEach(e => {
+                container.innerHTML += `
+                    <div class="record-item">
+                        <div class="record-info"><strong>${e.nome}</strong><span>${formatarData(e.data)}</span></div>
+                        <div class="record-val" style="color: var(--success);">${formatMoney(e.valor)}</div>
+                    </div>`;
+            });
+        }
+
+        function renderListaSaidas() {
+            const container = document.getElementById('lista-saidas');
+            const currentYear = document.getElementById('global-year').value;
+            container.innerHTML = '';
+            const filtradas = saidas.filter(s => s.ano === currentYear).sort((a,b) => new Date(b.data) - new Date(a.data));
+            
+            if(filtradas.length === 0) { container.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:14px;">Nada encontrado.</div>`; return; }
+
+            filtradas.forEach(s => {
+                container.innerHTML += `
+                    <div class="record-item">
+                        <div class="record-info"><strong>${s.desc}</strong><span>${formatarData(s.data)}</span></div>
+                        <div class="record-val" style="color: var(--danger);">- ${formatMoney(s.valor)}</div>
+                    </div>`;
+            });
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            const currentYear = document.getElementById('global-year').value;
+            const dadosEntradas = Array(12).fill(0); const dadosSaidas = Array(12).fill(0);
+
+            entradas.filter(e => e.ano === currentYear).forEach(e => { dadosEntradas[e.mes] += e.valor; });
+            saidas.filter(s => s.ano === currentYear).forEach(s => { dadosSaidas[s.mes] += s.valor; });
+
+            if(chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: mesesStr,
+                    datasets: [
+                        { label: 'Entrou', data: dadosEntradas, backgroundColor: '#10b981', borderRadius: 4 },
+                        { label: 'Saiu', data: dadosSaidas, backgroundColor: '#ef4444', borderRadius: 4 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { font: { size: 10 } } } } }
+            });
+        }
+    </script>
+</body>
+</html>
