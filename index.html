@@ -267,6 +267,7 @@
 
         function resetIdleTimer() {
             if (!currentUser) return;
+            localStorage.setItem('hf_last_active', Date.now());
             clearTimeout(idleTimeout);
             idleTimeout = setTimeout(() => window.logoutApp(), 3600000);
         }
@@ -274,6 +275,19 @@
         ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'].forEach(evt => 
             document.addEventListener(evt, resetIdleTimer, true)
         );
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const savedUser = localStorage.getItem('hf_user');
+            const lastActive = localStorage.getItem('hf_last_active');
+            
+            if (savedUser && lastActive) {
+                if (Date.now() - parseInt(lastActive) < 3600000) {
+                    await iniciarSessao(JSON.parse(savedUser));
+                } else {
+                    window.logoutApp();
+                }
+            }
+        });
 
         window.doLogin = async () => {
             const user = document.getElementById('login-user').value.trim();
@@ -324,6 +338,9 @@
 
         async function iniciarSessao(userData) {
             currentUser = userData;
+            localStorage.setItem('hf_user', JSON.stringify(userData));
+            localStorage.setItem('hf_last_active', Date.now());
+
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'flex';
             
@@ -345,6 +362,8 @@
 
         window.logoutApp = () => {
             currentUser = null;
+            localStorage.removeItem('hf_user');
+            localStorage.removeItem('hf_last_active');
             clearTimeout(idleTimeout);
             document.getElementById('auth-screen').style.display = 'flex';
             document.getElementById('app-screen').style.display = 'none';
